@@ -3,7 +3,8 @@ abstract: unknown
 author:
   - 'James Raspas <jraspass@gmail.com>'
 build_requires:
-  ExtUtils::MakeMaker: 0
+  Test::Class: 0
+  Test::Most: 0
 configure_requires:
   ExtUtils::MakeMaker: 0
 dynamic_config: 1
@@ -21,5 +22,7 @@ requires:
   DateTime: 0
   IO::All::LWP: 0
   Moose: 0
+  MooseX::MarkAsMethods: 0
   XML::Bare: 0
-version: 0.1
+  namespace::autoclean: 0
+version: 0.2

@@ -2,8 +2,10 @@ package WebService::Steam::Group;
 
 use IO::All;   # IO::All::LWP also needed
 use Moose;
-use namespace::autoclean;
+use MooseX::MarkAsMethods autoclean => 1;
 use XML::Bare;
+
+use overload '""' => sub { $_[0]->name };
 
 has name    => ( is => 'ro', isa => 'Str' );
 has summary => ( is => 'ro', isa => 'Str' );
@@ -12,20 +14,16 @@ sub get
 {
 	$#_ || return;
 
-	my $class = shift;
-
 	my @groups = map {
 
 		my $xml < io 'http://steamcommunity.com/' . ( /^\d+$/ ? 'gid' : '' ) . "/$_/memberslistxml";
 
 		my $hash = XML::Bare->new( text => $xml )->simple->{ memberList };
 
-		$class->new( name    => $hash->{ groupDetails }{ groupName },
-		             summary => $hash->{ groupDetails }{ summary   } );
+		$_[0]->new( name    => $hash->{ groupDetails }{ groupName },
+		            summary => $hash->{ groupDetails }{ summary   } );
 
-	}     $#_   ?    @_
-	: ref $_[0] ? @{ $_[0] }
-	:              ( $_[0] );
+	} ref $_[1] ? @{ $_[1] } : @_[ 1..$#_ ];
 
 	wantarray ? @groups : $groups[0];
 }
