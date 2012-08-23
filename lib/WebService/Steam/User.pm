@@ -1,67 +1,44 @@
 package WebService::Steam::User;
 
 use DateTime;
-use IO::All;   # IO::All::LWP also needed
+use IO::All;
 use Moose;
+use Moose::Util::TypeConstraints;
 use namespace::autoclean;
-use WebService::Steam::Group;
-use XML::Bare;
+use WebService::Steam;
 
-has   banned     => ( is => 'ro', isa => 'Bool'                              );
-has   custom_url => ( is => 'ro', isa => 'Str'                               );
-has __groups     => ( is => 'ro', isa => 'ArrayRef'                          );
-has  _groups     => ( is => 'ro',
-                     isa => 'ArrayRef[WebService::Steam::Group]',
-                  traits => [ 'Array' ],
-              lazy_build => 1,
-                 handles => { groups => 'elements', group_count => 'count' } );
-has   headline   => ( is => 'ro', isa => 'Str'                               );
-has   id         => ( is => 'ro', isa => 'Int'                               );
-has   limited    => ( is => 'ro', isa => 'Bool'                              );
-has   location   => ( is => 'ro', isa => 'Str'                               );
-has   name       => ( is => 'ro', isa => 'Str'                               );
-has   nick       => ( is => 'ro', isa => 'Str'                               );
-has   online     => ( is => 'ro', isa => 'Bool'                              );
-has   rating     => ( is => 'ro', isa => 'Num'                               );
-has  _registered => ( is => 'ro', isa => 'Str'                               );
-has   registered => ( is => 'ro', isa => 'DateTime', lazy_build => 1         );
-has   summary    => ( is => 'ro', isa => 'Str'                               );
+subtype 'SteamBool',   as 'Bool';
+ coerce 'SteamBool', from 'Str', via { /^online$/ };
 
-sub get
-{
-	$#_ || return;
+has      banned => ( is => 'ro', isa => 'Bool'     , init_arg => 'vacBanned'                );
+has  custom_url => ( is => 'ro', isa => 'Str'      , init_arg => 'customURL'                );
+has    __groups => ( is => 'ro', isa => 'ArrayRef' , init_arg => 'group'                    );
+has     _groups => ( isa => 'ArrayRef[WebService::Steam::Group]'                             ,
+                 handles => { groups => 'elements' }                                         ,
+              lazy_build => 1                                                                ,
+                  traits => [ 'Array' ]                                                     );
+has    headline => ( is => 'ro', isa => 'Str'                                               );
+has          id => ( is => 'ro', isa => 'Int'      , init_arg => 'steamID64'                );
+has     limited => ( is => 'ro', isa => 'Bool'     , init_arg => 'isLimitedAccount'         );
+has    location => ( is => 'ro', isa => 'Str'                                               );
+has        name => ( is => 'ro', isa => 'Str'      , init_arg => 'realname'                 );
+has        nick => ( is => 'ro', isa => 'Str'      , init_arg => 'steamID'                  );
+has      online => ( is => 'ro', isa => 'SteamBool', init_arg => 'onlineState', coerce => 1 );
+has      rating => ( is => 'ro', isa => 'Num'      , init_arg => 'steamRating'              );
+has _registered => ( is => 'ro', isa => 'Str'      , init_arg => 'memberSince'              );
+has  registered => ( is => 'ro', isa => 'DateTime' , lazy_build => 1                        );
+has     summary => ( is => 'ro', isa => 'Str'                                               );
 
-	my @users = map { my $xml < io "http://steamcommunity.com/@{[ /^\d+$/ ? 'profiles' : 'id' ]}/$_/?xml=1";
+sub           path { "http://steamcommunity.com/@{[ $_[1] =~ /^\d+$/ ? 'profiles' : 'id' ]}/$_[1]/?xml=1" }
 
-	                  $xml =~ /^<\?xml.*<\/profile>$/s || next;
-
-	                  my $user = XML::Bare->new( text => $xml )->simple->{ profile };
-
-	                  $_[0]->new( banned =>      $user->{ vacBanned        },
-	                          custom_url =>      $user->{ customURL        },
-	                            __groups => [ map { $_->{ groupID64        } } @{ $user->{ groups }{ group } } ],
-	                            headline =>      $user->{ headline         },
-	                                  id =>      $user->{ steamID64        },
-	                             limited =>      $user->{ isLimitedAccount },
-	                            location =>      $user->{ location         },
-	                                name =>      $user->{ realname         },
-	                                nick =>      $user->{ steamID          },
-	                              online =>      $user->{ onlineState      } eq 'online',
-	                              rating =>      $user->{ steamRating      },
-	                         _registered =>      $user->{ memberSince      },
-	                             summary =>      $user->{ summary          } ) } ref $_[1] ? @{ $_[1] } : @_[ 1..$#_ ];
-
-	wantarray ? @users : $users[0];
-}
-
-sub _build__groups { [ WebService::Steam::Group->get( $_[0]->__groups ) ] }
+sub _build__groups { [ WebService::Steam::steam_group( map { $$_{ groupID64 } } @{ $_[0]->__groups } ) ]  }
 
 sub _build_registered
 {
 	my ( $month, $day, $year ) = split /,? /, $_[0]->_registered;
 
 	my %months;
-	   @months{ qw( January Febuary March April May June July August September October November December ) } = ( 1..12 );
+	   @months{ qw/January Febuary March April May June July August September October November December/ } = ( 1..12 );
 	
 	DateTime->new( year => $year, month => $months{ $month }, day => $day );
 }
@@ -74,73 +51,48 @@ __END__
  
 =head1 NAME
 
-WebService::Steam - An OO Perl interface to the Steam community data
+WebService::Steam::User
 
-=head1 SYNOPSIS
+=head1 ATTRIBUTES
 
-	use WebService::Steam::User;
+=head2 banned
 
-	my $user = WebService::Steam::User->get( 'jraspass' );
+A boolean of the user's VAC banned status.
 
-	print $user->name,
-	      ' joined steam in ',
-	      $user->registered,
-	      ', has a rating of ',
-	      $user->rating,
-	      ', is from ',
-	      $user->location,
-	      ', and belongs to the following ',
-	      $user->group_count,
-	      ' groups: ',
-	      join ', ', $user->groups;
+=head2 custom_url
 
-=head1 METHODS
- 
-=head2 Class Methods
+A string of the user's custom URL
 
-=head3 get
+=head2 headline
 
-Returns an instance of a Steam user, can take any combination of Steam usernames and IDs.
+A string of the user's headline
 
-In scalar context returns the first element of the array.
- 
-	my $user  = WebService::Steam::User->get(   'jraspass'                      );
-	my $user  = WebService::Steam::User->get(               76561198005755687   );
-	my @users = WebService::Steam::User->get(   'jraspass', 76561198005755687   );
-	my @users = WebService::Steam::User->get( [ 'jraspass', 76561198005755687 ] );
+=head2 id
 
-=head2 Instance Methods
+An integer of the user's ID
 
-=head3 banned
+=head2 limited
 
-Returns a boolean indicating whether or not the user has received a VAC ban.
+=head2 location
 
-=head3 custom_url
+=head2 name
 
-=head3 headline
+A string of the user's real life name.
 
-=head3 id
+=head2 nick
 
-=head3 limited
+A string of the user's chosen nick name.
 
-=head3 location
+=head2 online
 
-=head3 name
+A boolean of the user's current online status.
 
-=head3 nick
+=head2 rating
 
-=head3 online
+=head2 registered
 
-Returns a boolean indicating whether or not the user is currently online.
+A L<DateTime> of when the user registered their Steam account.
 
-=head3 rating
+=head2 summary
 
-=head3 registered
-
-A L<DateTime> representing when the user registered their Steam account.
-
-=head3 summary
-
-=head3 groups
-
-=head3 group_count
+=head2 groups

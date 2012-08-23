@@ -1,33 +1,32 @@
 package WebService::Steam::Group;
 
-use IO::All;   # IO::All::LWP also needed
+use IO::All;
 use Moose;
 use MooseX::MarkAsMethods autoclean => 1;
-use XML::Bare;
 
 use overload '""' => sub { $_[0]->name };
 
-has name    => ( is => 'ro', isa => 'Str' );
+has    name => ( is => 'ro', isa => 'Str', init_arg => 'groupName' );
 has summary => ( is => 'ro', isa => 'Str' );
 
-sub get
-{
-	$#_ || return;
-
-	my @groups = map {
-
-		my $xml < io 'http://steamcommunity.com/' . ( /^\d+$/ ? 'gid' : '' ) . "/$_/memberslistxml";
-
-		my $hash = XML::Bare->new( text => $xml )->simple->{ memberList };
-
-		$_[0]->new( name    => $hash->{ groupDetails }{ groupName },
-		            summary => $hash->{ groupDetails }{ summary   } );
-
-	} ref $_[1] ? @{ $_[1] } : @_[ 1..$#_ ];
-
-	wantarray ? @groups : $groups[0];
-}
+sub path { "http://steamcommunity.com/@{[ $_[1] =~ /^\d+$/ ? 'gid' : 'groups' ]}/$_[1]/memberslistxml" }
 
 __PACKAGE__->meta->make_immutable;
 
 1;
+
+__END__
+ 
+=head1 NAME
+
+WebService::Steam::User
+
+=head1 ATTRIBUTES
+
+=head2 name
+
+A string of the name of the group.
+
+=head2 summary
+
+A string of the summary of the group.

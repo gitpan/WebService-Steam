@@ -22,7 +22,8 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "Test::Class" : "0",
+            "ExtUtils::MakeMaker" : "0",
+            "Test::LWP::UserAgent" : "0",
             "Test::Most" : "0"
          }
       },
@@ -35,13 +36,11 @@
          "requires" : {
             "DateTime" : "0",
             "IO::All::LWP" : "0",
-            "Moose" : "0",
             "MooseX::MarkAsMethods" : "0",
-            "XML::Bare" : "0",
-            "namespace::autoclean" : "0"
+            "XML::Bare" : "0"
          }
       }
    },
    "release_status" : "stable",
-   "version" : "0.2"
+   "version" : "0.3"
 }
