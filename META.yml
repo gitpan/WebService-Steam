@@ -1,5 +1,5 @@
 ---
-abstract: unknown
+abstract: 'A Perl interface to the'
 author:
   - 'James Raspas <jraspass@gmail.com>'
 build_requires:
@@ -22,6 +22,7 @@ no_index:
 requires:
   DateTime: 0
   IO::All::LWP: 0
-  MooseX::MarkAsMethods: 0
+  Moose: 0
   XML::Bare: 0
-version: 0.3
+  perl: 5.01
+version: 0.4

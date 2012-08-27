@@ -1,5 +1,5 @@
 {
-   "abstract" : "unknown",
+   "abstract" : "A Perl interface to the",
    "author" : [
       "James Raspas <jraspass@gmail.com>"
    ],
@@ -36,11 +36,12 @@
          "requires" : {
             "DateTime" : "0",
             "IO::All::LWP" : "0",
-            "MooseX::MarkAsMethods" : "0",
-            "XML::Bare" : "0"
+            "Moose" : "0",
+            "XML::Bare" : "0",
+            "perl" : "5.01"
          }
       }
    },
    "release_status" : "stable",
-   "version" : "0.3"
+   "version" : "0.4"
 }
